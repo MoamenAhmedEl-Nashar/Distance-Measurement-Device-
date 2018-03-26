@@ -1,84 +1,146 @@
-#include"stdint.h"
-#include "C:/Keil_v5/Labware/inc/tm4c123gh6pm.h" // for definitions of addresses
+#include "tm4c123gh6pm.h" //for the addresses
+#include "stdint.h" //for int data types (like uint32_t)
+
+#define ECHO (*((volatile uint32_t *)(0x400053FC + 0x0100)))
+#define TRIGGER (*((volatile uint32_t *)(0x400053FC + 0x080)))
+#define DECA (*((volatile uint32_t *)(0x400043FC + 0x04 + 0x08 + 0x010 + 0x020)))
+#define DECD (*((volatile uint32_t *)(0x400073FC + 0x04 + 0x08 + 0x010 + 0x020)))
+#define DECE (*((volatile uint32_t *)(0x400243FC + 0x04 + 0x08 + 0x010 + 0x020)))
+
 #define SPEEDOFSOUND 340
-void SystemInit(){}//function that atartup_TM4C123.s needs to import
-	// global variables declaration
-	volatile unsigned long counter_value;
-	volatile unsigned long counts ;
-	volatile unsigned long time_in_ns ;
-	float Distance;
-	////-------------------------------------------------------------------//////////
-void PORTF_Init()
+
+void SystemInit(){} //so when startup code finishes it jumps here
+
+void portBInit()
 {
-		SYSCTL_RCGCGPIO_R=0x20;//enable clock for port F
-	  while((SYSCTL_PRGPIO_R &0x20)==0x00){};//waiting untill ensuring enableing clock 
-		// you can use dummy instuction also instead of this while loop
-		GPIO_PORTF_LOCK_R=0x4C4F434B;
-		GPIO_PORTF_CR_R=0x1F;
-		GPIO_PORTF_AFSEL_R=0;
-		GPIO_PORTF_PCTL_R=0x00;//sw0 is time pin
-		GPIO_PORTF_AMSEL_R=0;
-		GPIO_PORTF_DIR_R=0x0E;// 0 for input  1 for output
-		GPIO_PORTF_DEN_R=0x1F;
-		GPIO_PORTF_PUR_R=0x11;//sw0 ,sw1
-}
-void sysTick_init()
-{
-	NVIC_ST_CTRL_R=0; // disable the counter
-	NVIC_ST_RELOAD_R=(0x0FFFFFF);
-	NVIC_ST_CURRENT_R=0;// clear the current register and the count flag
-	NVIC_ST_CTRL_R=5;//enable the counter and configure control register
+	SYSCTL_RCGCGPIO_R |= 0x02;
+	while(!(SYSCTL_PRGPIO_R & 0x02));
+	
+	GPIO_PORTB_LOCK_R = 0x4C4F434B;
+	GPIO_PORTB_CR_R |= 0x6F;
+	
+	GPIO_PORTB_DEN_R = 0x6F;
+	GPIO_PORTB_AMSEL_R = 0;
+	GPIO_PORTB_AFSEL_R = 0;
+	GPIO_PORTB_PCTL_R = 0;
+	GPIO_PORTB_DIR_R = 0x2F; //echo = 6 , trigger = 5 , 0->3 outputs if needed
 }
 
-void measure_distance()
+void portAInit()
 {
-	/*----initialize counter but don't enable it-------*/
-	NVIC_ST_CURRENT_R = 0;
-	NVIC_ST_CTRL_R |= 0;// not enabled
-	NVIC_ST_RELOAD_R = 0x00FFFFFF;//max reload value
+	SYSCTL_RCGCGPIO_R |= 0x01;
+	while(!(SYSCTL_PRGPIO_R & 0x01));
 	
-	/*-----wait untill echo goes to 1 ---------------*/
-	while((GPIO_PORTF_DATA_R&0x01)==0){} //sw on 
-	while((GPIO_PORTF_DATA_R&0x01)==1){} // sw off
-		//sw on
-	/*-----enable counter untill pin goes to 1 ----*/
-	NVIC_ST_CTRL_R |= 5;//enabled
-	while((GPIO_PORTF_DATA_R&0x01)==0){}//wait
-		//sw off
-	counter_value = NVIC_ST_CURRENT_R;
-	NVIC_ST_CTRL_R |= 0;//disabled
-		
-	/*---------------get real time---------------------*/
-	 counts = 16777215 - counter_value;
-	 //time_in_ns = counts*62.5*0.000000001    /*12.5*0.000000001*/;
-	 Distance = (counts*62.5*0.000000001    /*12.5*0.000000001*/ * SPEEDOFSOUND*100) / 2.0;
+	GPIO_PORTA_LOCK_R = 0x4C4F434B;
+	GPIO_PORTA_CR_R |= 0x0F;
 	
+	GPIO_PORTA_DEN_R = 0x0F;
+	GPIO_PORTA_AMSEL_R = 0;
+	GPIO_PORTA_AFSEL_R = 0;
+	GPIO_PORTA_PCTL_R = 0;
+	GPIO_PORTA_DIR_R = 0x0F; //0->3 outputs (for decoder)
 }
-void delay_seconds(uint32_t time)//the function assumes that clock is 80 MHz
+
+void portDInit()
+{
+	//PD5 is not on the board
+	SYSCTL_RCGCGPIO_R |= 0x08;
+	while(!(SYSCTL_PRGPIO_R & 0x08));
+	
+	GPIO_PORTD_LOCK_R = 0x4C4F434B;
+	GPIO_PORTD_CR_R |= 0x0F;
+	
+	GPIO_PORTD_DEN_R = 0x0F;
+	GPIO_PORTD_AMSEL_R = 0;
+	GPIO_PORTD_AFSEL_R = 0;
+	GPIO_PORTD_PCTL_R = 0;
+	GPIO_PORTD_DIR_R = 0x0F; //0->3 outputs (for decoder)
+}
+
+void portEInit()
+{
+	//PE0 is P30 on the board
+	SYSCTL_RCGCGPIO_R |= 0x10;
+	while(!(SYSCTL_PRGPIO_R & 0x10));
+	
+	GPIO_PORTE_LOCK_R = 0x4C4F434B;
+	GPIO_PORTE_CR_R |= 0x0F;
+	
+	GPIO_PORTE_DEN_R = 0x0F;
+	GPIO_PORTE_AMSEL_R = 0;
+	GPIO_PORTE_AFSEL_R = 0;
+	GPIO_PORTE_PCTL_R = 0;
+	GPIO_PORTE_DIR_R = 0x0F; //0->3 outputs (for decoder)
+}
+
+void systickInit()
+{
+	NVIC_ST_CTRL_R = 0; // Disable the systick timer
+	NVIC_ST_CURRENT_R = 0; // Makes sure that current value is empty
+	NVIC_ST_RELOAD_R = 8000; // value to be reloaded
+	NVIC_ST_CTRL_R = 0x05; // Enable the systick timer
+}
+
+void init()
+{
+	portAInit();
+	portBInit();
+	portDInit();
+	portEInit();
+	//systickInit();
+}
+
+//the function assumes that clock is 80 MHz
+//delay by multiples of 1 ms for minimum distance of 3.43 cm
+void delay(uint32_t time)
 {
 	
 	uint32_t i;
-	for(i=0;i<(time);i++) //200 ms*10=1 sec
+	for(i=0;i<(time);i++) //
 	{
-	sysTick_init();
+	systickInit();
 	while((NVIC_ST_CTRL_R&0x10000)==0){}
 	}
 }
 
-int main() // main function that contains the while loop
+//returns distance in cm
+double measure_distance() 
 {
-	
-		PORTF_Init();
-		//delay_seconds(1);
-	  
+	uint32_t counterValue;
+	uint32_t counts;
+	/*----initialize counter but don't enable it-------*/
+	NVIC_ST_CURRENT_R = 0;
+	NVIC_ST_CTRL_R |= 0;// not enabled
+	NVIC_ST_RELOAD_R = 0x00FFFFFF;//max reload value
+	/*-----trigger the ultra sonic ---------------*/
+	TRIGGER = 1;
+	/*-----wait untill echo goes to 1 ---------------*/
+	while(!ECHO);
+	/*-----enable counter untill echo goes to 0 ----*/
+	NVIC_ST_CTRL_R |= 5;//enabled
+	while(ECHO);//wait
+	counterValue = NVIC_ST_CURRENT_R - 3; // for accuracy for the execution of 3 instructions
+	NVIC_ST_CTRL_R |= 0;//disabled
+		
+	/*---------------get real time---------------------*/
+	 counts = 16777215 - counterValue;
+	 //time = counts*62.5*0.000000001    /*12.5*0.000000001*/;
+	 return (counts*12.5*0.000000001    /*12.5*0.000000001*/ * SPEEDOFSOUND * 100) / 2.0;
+}
+
+void setDisplay(uint32_t distance)
+{
+	DECA = distance/100; //100s
+	DECD = (distance%100)/100; //10s
+	DECE = (distance%100)%10; //1s
+}
+int main()
+{
+	uint32_t dist;
+	init();
 	while(1)
 	{
-		/*if((NVIC_ST_CTRL_R&0x10000))//if count flag is high
-		{
-			GPIO_PORTF_DATA_R|=0x02;//red led
-					
-		}*/
-		measure_distance();
+		setDisplay(measure_distance());
+		delay(10);
 	}
-	
 }
