@@ -1,0 +1,71 @@
+void UnitSegDisplay(uint32_t number)          //a->g  PE0->PE6        // 6 0000011 0x03
+																														        	// 9 0011000 0x18
+{
+	if(number == 0)
+		GPIO_PORTE_DATA_R = (0x40);
+	else if(number == 1)
+		GPIO_PORTE_DATA_R = (0x79);
+	else if(number == 2)
+		GPIO_PORTE_DATA_R = (0x24);
+	else if(number == 3)
+		GPIO_PORTE_DATA_R = (0x30);
+	else if(number == 4)
+		GPIO_PORTE_DATA_R = (0x19);
+	else if(number == 5)
+		GPIO_PORTE_DATA_R = (0x12);
+	else if(number == 6)
+		GPIO_PORTE_DATA_R = (0x03);
+	else if(number == 7)
+		GPIO_PORTE_DATA_R = (0x79);
+	else if(number == 8)
+		GPIO_PORTE_DATA_R = (0x79);
+	else if(number == 9)
+		GPIO_PORTE_DATA_R = (0x18);		
+}
+void TensSegDisplay(uint32_t number)          //a->g  PD0->PD6       
+																														        	
+{
+	if(number == 0)
+		GPIO_PORTD_DATA_R = (0x40);
+	else if(number == 1)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 2)
+		GPIO_PORTD_DATA_R = (0x24);
+	else if(number == 3)
+		GPIO_PORTD_DATA_R = (0x30);
+	else if(number == 4)
+		GPIO_PORTD_DATA_R = (0x19);
+	else if(number == 5)
+		GPIO_PORTD_DATA_R = (0x12);
+	else if(number == 6)
+		GPIO_PORTD_DATA_R = (0x03);
+	else if(number == 7)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 8)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 9)
+		GPIO_PORTD_DATA_R = (0x18);		
+}
+void HundredsSegDisplay(uint32_t number)          //Choose Port
+{
+	if(number == 0)
+		GPIO_PORTD_DATA_R = (0x40);
+	else if(number == 1)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 2)
+		GPIO_PORTD_DATA_R = (0x24);
+	else if(number == 3)
+		GPIO_PORTD_DATA_R = (0x30);
+	else if(number == 4)
+		GPIO_PORTD_DATA_R = (0x19);
+	else if(number == 5)
+		GPIO_PORTD_DATA_R = (0x12);
+	else if(number == 6)
+		GPIO_PORTD_DATA_R = (0x03);
+	else if(number == 7)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 8)
+		GPIO_PORTD_DATA_R = (0x79);
+	else if(number == 9)
+		GPIO_PORTD_DATA_R = (0x18);		
+}
