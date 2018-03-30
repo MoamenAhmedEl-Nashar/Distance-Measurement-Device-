@@ -1,0 +1,244 @@
+//#include "tm4c123gh6pm.h" //for the addresses of ports
+//#include "stdint.h" //for int data types (like uint32_t)
+
+#include "C:/Keil/EE319Kware/inc/tm4c123gh6pm.h"
+#include <stdint.h>
+
+//#define ECHO (*((volatile uint32_t *)(0x400053FC + 0x0100)))
+//#define TRIGGER (*((volatile uint32_t *)(0x400053FC + 0x080)))
+#define DECB (*((volatile uint32_t *)(0x400053FC + 0x04 + 0x08 + 0x010 + 0x020)))
+#define DECD (*((volatile uint32_t *)(0x400073FC + 0x04 + 0x08 + 0x010 + 0x020)))
+#define DECE (*((volatile uint32_t *)(0x400243FC + 0x04 + 0x08 + 0x010 + 0x020)))
+
+#define SPEEDOFSOUND 340
+uint32_t counter;
+float distance;
+
+void SystemInit(){} //so when startup code finishes it jumps here
+
+void portBInit()
+{
+	SYSCTL_RCGCGPIO_R |= 0x02;
+	while(!(SYSCTL_PRGPIO_R & 0x02));
+	
+	GPIO_PORTB_LOCK_R = 0x4C4F434B;
+	GPIO_PORTB_CR_R |= 0xFF;
+	
+	GPIO_PORTB_DEN_R = 0xFF;
+	GPIO_PORTB_AMSEL_R = 0;
+	GPIO_PORTB_AFSEL_R = 0;
+	GPIO_PORTB_PCTL_R = 0;
+	GPIO_PORTB_DIR_R = 0xFF; // 0->3 outputs if needed
+}
+
+void portAInit()
+{
+	SYSCTL_RCGCGPIO_R |= 0x01;
+	while(!(SYSCTL_PRGPIO_R & 0x01));
+	
+	GPIO_PORTA_LOCK_R = 0x4C4F434B;
+	GPIO_PORTA_CR_R |= 0xFF;
+	
+	GPIO_PORTA_DEN_R = 0xFF;
+	GPIO_PORTA_AMSEL_R &= ~0xFF;
+	GPIO_PORTA_AFSEL_R &= ~0xFF;
+	GPIO_PORTA_PCTL_R = 0;
+	GPIO_PORTA_DIR_R = 0x20; //0->3 outputs (for decoder).......echo(input) = 6 , trigger(output) = 5 ,
+}
+
+void portDInit()
+{
+	//PD5 is not on the board
+	SYSCTL_RCGCGPIO_R |= 0x08;
+	while(!(SYSCTL_PRGPIO_R & 0x08));
+	
+	GPIO_PORTD_LOCK_R = 0x4C4F434B;
+	GPIO_PORTD_CR_R |= 0xFF;
+	
+	GPIO_PORTD_DEN_R = 0xFF;
+	GPIO_PORTD_AMSEL_R = 0;
+	GPIO_PORTD_AFSEL_R = 0;
+	GPIO_PORTD_PCTL_R = 0;
+	GPIO_PORTD_DIR_R = 0xFF; //0->3 outputs (for decoder)
+}
+
+void portEInit()
+{
+	//PE0 is P30 on the board
+	SYSCTL_RCGCGPIO_R |= 0x10;
+	while(!(SYSCTL_PRGPIO_R & 0x10));
+	
+	GPIO_PORTE_LOCK_R = 0x4C4F434B;
+	GPIO_PORTE_CR_R |= 0xFF;
+
+	GPIO_PORTE_DEN_R = 0xFF;
+	GPIO_PORTE_AMSEL_R = 0;
+	GPIO_PORTE_AFSEL_R = 0;
+	GPIO_PORTE_PCTL_R = 0;
+	GPIO_PORTE_DIR_R = 0xFF; //0->3 outputs (for decoder)
+}
+void portFInit()
+{
+	//PE0 is P30 on the board
+	SYSCTL_RCGCGPIO_R |= 0x20;
+	while(!(SYSCTL_PRGPIO_R & 0x20));
+	
+	GPIO_PORTF_LOCK_R = 0x4C4F434B;
+	GPIO_PORTF_CR_R |= 0xFF;
+	
+	GPIO_PORTF_DEN_R = 0xFF;
+	GPIO_PORTF_AMSEL_R = 0;
+	GPIO_PORTF_AFSEL_R = 0;
+	GPIO_PORTF_PCTL_R = 0;
+	GPIO_PORTF_DIR_R = 0x0E; //0->3 outputs (for decoder)
+}
+void systickInit()
+{
+	NVIC_ST_CTRL_R = 0; // Disable the systick timer
+	NVIC_ST_CURRENT_R = 0; // Makes sure that current value is empty
+	NVIC_ST_RELOAD_R =16 ; //160 value to be reloaded //10us 
+	NVIC_ST_CTRL_R = 0x05; // Enable the systick timer
+}
+
+void init()
+{
+	portAInit();
+	portBInit();
+	portDInit();
+	portEInit();
+	
+	//systickInit();
+}
+
+
+//the function assumes that clock is 80 MHz
+//delay by multiples of 1 us for minimum distance of 
+void delay(uint32_t time)
+{
+	//time =time-1;
+	uint32_t i;
+	for(i=0;i<(time);i++) //
+	{
+	systickInit();
+	while((NVIC_ST_CTRL_R&0x10000)==0){}
+	}
+}
+
+//returns distance in cm
+uint32_t measure_distance() 
+{ 
+	
+	// GPIO_PORTF_DATA_R &= ~0x02;
+	uint32_t counterValue;
+	uint32_t counts;
+	//----initialize counter but don't enable it-------
+	NVIC_ST_CTRL_R = 0;// not enabled
+	NVIC_ST_CURRENT_R = 0;
+	NVIC_ST_RELOAD_R = 0x00FFFFFF;//max reload value
+	
+	//-----trigger the ultra sonic ---------------
+	//TRIGGER = 0;
+	GPIO_PORTA_DATA_R &= ~0x20;//pA5=0
+	delay(10);
+	GPIO_PORTA_DATA_R |= 0x20; //pA5=1
+	//TRIGGER = 1;
+	delay(10);
+	GPIO_PORTA_DATA_R &= ~0x20; //pA5=0
+	//TRIGGER = 0;
+	
+	//-----wait untill echo goes to 1 ---------------
+	//while(!ECHO);
+ // NVIC_ST_CTRL_R = 5;//enabled
+	//while((GPIO_PORTA_DATA_R&0x40)==1){};
+  while((GPIO_PORTA_DATA_R&0x40)==0){};//waiting for echo=1
+	//-----enable counter untill echo goes to 0 ----
+  NVIC_ST_CTRL_R |= 5;//enabled   R
+	//while(ECHO);//wait
+                                                          //	NVIC_ST_CTRL_R |= 1;           R
+  while((GPIO_PORTA_DATA_R&0x20)==1){
+	GPIO_PORTF_DATA_R|=0x02;    };                                                   // while((GPIO_PORTA_DATA_R&0x40)==1);
+	//GPIO_PORTF_DATA_R |= 0x02;
+				
+	//GPIO_PORTF_DATA_R &= ~0x02;
+	counterValue = NVIC_ST_CURRENT_R - 3; // for accuracy for the execution of 3 instructions
+	NVIC_ST_CTRL_R = 0;//disabled
+		
+	//---------------get real time---------------------
+	 counts = 16777215 - counterValue;
+	 //time = counts*62.5*0.000000001; //   //12.5*0.000000001
+	  return (uint32_t) (((counts/16)* SPEEDOFSOUND )/ 2.0);                                                           //return (uint32_t) ((counts*62.5*0.000000001 * SPEEDOFSOUND * 100) / 2.0);    //12.5*0.000000001 * SPEEDOFSOUND * 100) / 2.0;
+}
+float measureD(void){ 
+    GPIO_PORTA_DATA_R &= ~0x20;//pA5=0
+	delay(10);
+	GPIO_PORTA_DATA_R |= 0x20; //pA5=1
+	//TRIGGER = 1;
+	delay(10);
+	GPIO_PORTA_DATA_R &= ~0x20; //pA5=0
+    counter =0;
+   while((GPIO_PORTA_DATA_R&0x40)==0){};
+    while((GPIO_PORTA_DATA_R&0x40)!=0) 
+ { 
+  counter++; 
+ // delay(1);
+  } 
+ distance = (float)counter*(float)0.0170000;//0.0002125/*0.0170000*/;
+ return distance; } 
+
+
+
+
+
+void setDisplay(uint32_t distance)
+{
+	GPIO_PORTB_DATA_R = distance/100; //100s
+	GPIO_PORTD_DATA_R = (distance%100)/10; //10s
+	GPIO_PORTE_DATA_R = (distance%100)%10; //1s
+}
+int main(void)
+{
+	uint32_t dist=0;
+
+	init();
+	portFInit();
+	//systickInit();
+	
+	
+	
+	
+	while(1)
+	{	if((GPIO_PORTF_DATA_R & 0x01) ==0)	
+		{
+		measureD();   
+    if(measureD() < 10.0){ 
+     GPIO_PORTF_DATA_R |= 0x02;
+		 GPIO_PORTF_DATA_R &= ~0x04;
+        }
+    else{
+    GPIO_PORTF_DATA_R |= 0x04;
+		GPIO_PORTF_DATA_R &= ~0x02;
+        }
+    delay(10);
+	   //GPIO_PORTB_DATA_R = measureD();
+		setDisplay((uint32_t)measureD());
+		//GPIO_PORTE_DATA_R = 8;
+		//GPIO_PORTB_DATA_R = 8;
+		//GPIO_PORTD_DATA_R = 8;
+			}
+	}  
+			
+			
+}
+		
+		//GPIO_PORTB_DATA_R =  (uint32_t)dist; //((uint32_t)(dist%100)%10)+1;
+	
+		
+	
+	
+	
+  
+	
+	
+	
+
+
